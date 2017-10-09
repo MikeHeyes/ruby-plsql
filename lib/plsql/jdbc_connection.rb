@@ -17,21 +17,32 @@ begin
     []
   end
 
-  if ENV_JAVA["java.class.path"] !~ Regexp.new(ojdbc_jars.join("|"))
-    # On Unix environment variable should be PATH, on Windows it is sometimes Path
-    env_path = (ENV["PATH"] || ENV["Path"] || "").split(File::PATH_SEPARATOR)
-    # Look for JDBC driver at first in lib subdirectory (application specific JDBC file version)
-    # then in Ruby load path and finally in environment PATH
-    ["./lib"].concat($LOAD_PATH).concat(env_path).detect do |dir|
-      # check any compatible JDBC driver in the priority order
-      ojdbc_jars.any? do |ojdbc_jar|
-        if File.exists?(file_path = File.join(dir, ojdbc_jar))
-          require file_path
-          true
+
+
+  def load_jar jar_names
+
+
+    if ENV_JAVA["java.class.path"] !~ Regexp.new(jar_names.join("|"))
+      # On Unix environment variable should be PATH, on Windows it is sometimes Path
+      env_path = (ENV["PATH"] || ENV["Path"] || "").split(File::PATH_SEPARATOR)
+      # Look for JDBC driver at first in lib subdirectory (application specific JDBC file version)
+      # then in Ruby load path and finally in environment PATH
+      ["./lib"].concat($LOAD_PATH).concat(env_path).detect do |dir|
+        # check any compatible JDBC driver in the priority order
+        jar_names.any? do |jar|
+          if File.exists?(file_path = File.join(dir, jar))
+            require file_path
+            true
+          end
         end
       end
     end
+
   end
+
+  load_jar ojdbc_jars
+  load_jar ["xdb6-11.2.0.4.jar"]
+  load_jar ["xmlparserv2-11.2.0.3.jar"]
 
   java.sql.DriverManager.registerDriver Java::oracle.jdbc.OracleDriver.new
 
@@ -117,7 +128,7 @@ module PLSQL
         if metadata[:in_out] =~ /OUT/
           @out_types[arg] = type || ora_value.class
           @out_index[arg] = bind_param_index(arg)
-          if ['TABLE','VARRAY','OBJECT','XMLTYPE'].include?(metadata[:data_type])
+          if ['TABLE','VARRAY','OBJECT','XMLTYPE', 'OPAQUE/XMLTYPE'].include?(metadata[:data_type])
             @statement.registerOutParameter(@out_index[arg], @connection.get_java_sql_type(ora_value,type),
               metadata[:sql_type_name])
           else
@@ -233,6 +244,7 @@ module PLSQL
       String => java.sql.Types::VARCHAR,
       Java::OracleSql::CLOB => Java::oracle.jdbc.OracleTypes::CLOB,
       Java::OracleSql::BLOB => Java::oracle.jdbc.OracleTypes::BLOB,
+      Java::OracleXdb::XMLType => Java::oracle.jdbc.OracleTypes::OPAQUE,
       Date => java.sql.Types::DATE,
       Time => java.sql.Types::TIMESTAMP,
       DateTime => java.sql.Types::DATE,
@@ -254,7 +266,7 @@ module PLSQL
       java.sql.Types::DATE => Time,
       java.sql.Types::TIMESTAMP => Time,
       Java::oracle.jdbc.OracleTypes::TIMESTAMPTZ => Time,
-      Java::oracle.jdbc.OracleTypes::TIMESTAMPLTZ => Time,
+      Java::oracle.jdbc.OracleTypes::TIMESTAMPLTZ => Time,    
       java.sql.Types::BLOB => String,
       java.sql.Types::CLOB => String,
       java.sql.Types::ARRAY => Java::OracleSql::ARRAY,
@@ -282,12 +294,14 @@ module PLSQL
         stmt.send("setClob#{key && "AtName"}", key || i, value)
       when :'Java::OracleSql::BLOB'
         stmt.send("setBlob#{key && "AtName"}", key || i, value)
+      when :'Java::OracleXdb::XMLType'
+        stmt.send("setObject#{key && "AtName"}", key || i, value)
       when :Date, :DateTime, :'Java::OracleSql::DATE'
         stmt.send("setDATE#{key && "AtName"}", key || i, value)
       when :Time, :'Java::JavaSql::Timestamp'
         stmt.send("setTimestamp#{key && "AtName"}", key || i, value)
       when :NilClass
-        if ['TABLE', 'VARRAY', 'OBJECT','XMLTYPE'].include?(metadata[:data_type])
+        if ['TABLE', 'VARRAY', 'OBJECT', 'OPAQUE/XMLTYPE', 'XMLTYPE'].include?(metadata[:data_type])
           stmt.send("setNull#{key && "AtName"}", key || i, get_java_sql_type(value, type),
             metadata[:sql_type_name])
         elsif metadata[:data_type] == 'REF CURSOR'
@@ -301,7 +315,7 @@ module PLSQL
       when :'Java::OracleSql::ARRAY'
         stmt.send("setARRAY#{key && "AtName"}", key || i, value)
       when :'Java::OracleSql::STRUCT'
-        stmt.send("setSTRUCT#{key && "AtName"}", key || i, value)
+        stmt.send("setSTRUCT#{key && "AtName"}", key || i, value) 
       when :'Java::JavaSql::ResultSet'
         # TODO: cannot find how to pass cursor parameter from JDBC
         # setCursor is giving exception java.sql.SQLException: Unsupported feature
@@ -336,6 +350,8 @@ module PLSQL
         stmt.getSTRUCT(i)
       when :'Java::JavaSql::ResultSet'
         stmt.getCursor(i)
+      when :'Java::OracleXdb::XMLType'
+        stmt.getObject(i)
       end
     end
 
@@ -372,6 +388,8 @@ module PLSQL
         [Java::OracleSql::STRUCT, nil]
       when "REF CURSOR"
         [java.sql.ResultSet, nil]
+      when "OPAQUE/XMLTYPE"
+        [Java::OracleXdb::XMLType, nil]
       else
         [String, 32767]
       end
@@ -411,6 +429,13 @@ module PLSQL
           clob
         else
           nil
+        end
+      when :'Java::OracleXdb::XMLType'
+        if value
+          xml = Java::OracleXdb::XMLType::createXML(raw_connection, value)
+          xml
+        else
+           nil
         end
       when :'Java::OracleSql::BLOB'
         if value
@@ -461,7 +486,7 @@ module PLSQL
             else
               object_attrs.put(key.to_s.upcase, ruby_value_to_ora_value(attr_value))
             end
-          end
+          end 
           Java::OracleSql::STRUCT.new(descriptor, raw_connection, object_attrs)
         end
       when :'Java::JavaSql::ResultSet'
@@ -490,6 +515,11 @@ module PLSQL
           Time.send(plsql.default_timezone, value.year + 1900, value.month + 1, value.date, value.hours, value.minutes, value.seconds,
             value.nanos / 1000)
         end
+        when Java::OracleSql::OPAQUE
+          if value.getOracleMetaData.getSQLName.getSimpleName == "XMLTYPE"
+            xmlVal =  Java::OracleXdb::XMLType.createXML(value)
+            xmlVal.getStringVal;
+          end
       when Java::OracleSql::CLOB
         if value.isEmptyLob
           nil
