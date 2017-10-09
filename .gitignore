@@ -13,3 +13,8 @@ Gemfile.lock
 .vagrant
 .idea
 spec/support/custom_config.rb
+.env
+.rbenv_version
+.rspec
+.vscode/
+oracle-xe-11.2.0-1.0.x86_64.rpm.zip
