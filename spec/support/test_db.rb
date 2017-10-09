@@ -1,3 +1,5 @@
+require 'timeout'
+
 class TestDb
 
   DATABASE_USERS = %w{hr arunit}
