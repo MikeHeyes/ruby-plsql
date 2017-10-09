@@ -8,6 +8,7 @@ end
 group :test, :development do
   gem 'rake', '>= 10.0'
   gem 'rspec', '~> 3.1'
+  gem 'dotenv'
 
   unless ENV['NO_ACTIVERECORD']
     gem 'activerecord', '>= 3.2.3', '< 5.2.0'

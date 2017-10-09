@@ -2,6 +2,7 @@ require "rubygems"
 require "bundler"
 Bundler.setup(:default, :development)
 require 'simplecov'
+require 'dotenv/load'
 
 SimpleCov.configure do
   load_profile 'root_filter'
