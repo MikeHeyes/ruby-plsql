@@ -216,7 +216,6 @@ module PLSQL
     end
 
     def cursor_from_query(sql, bindvars=[], options={})
-      puts sql
       Cursor.new_from_query(self, sql, bindvars, options)
     end
 
@@ -283,8 +282,6 @@ module PLSQL
       
       key = i.kind_of?(Integer) ? nil : i.to_s.gsub(':','')
       type_symbol = (!value.nil? && type ? type : value.class).to_s.to_sym
-
-      puts "value is #{value} key is #{key} type_symbol is #{type_symbol}"
       case type_symbol
       when :Fixnum, :Bignum, :Integer
         stmt.send("setInt#{key && "AtName"}", key || i, value)
@@ -330,7 +327,6 @@ module PLSQL
     end
 
     def get_bind_variable(stmt, i, type)
-      puts "bind variable type is #{type.to_s.to_sym}"
       case type.to_s.to_sym
       when :Fixnum, :Bignum, :Integer
         stmt.getObject(i)
