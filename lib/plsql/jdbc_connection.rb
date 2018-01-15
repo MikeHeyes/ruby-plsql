@@ -268,6 +268,7 @@ module PLSQL
       Java::oracle.jdbc.OracleTypes::TIMESTAMPTZ => Time,
       Java::oracle.jdbc.OracleTypes::TIMESTAMPLTZ => Time,
       Java::oracle.jdbc.OracleTypes::BLOB => Java::OracleSql::BLOB,      
+      Java::OracleSql::CLOB => Java::OracleSql::CLOB,
       Java::oracle.jdbc.OracleTypes::CLOB => Java::OracleSql::CLOB,
       java.sql.Types::ARRAY => Java::OracleSql::ARRAY,
       java.sql.Types::STRUCT => Java::OracleSql::STRUCT,
@@ -343,7 +344,6 @@ module PLSQL
       when :String
         stmt.getString(i)
       when :'Java::OracleSql::CLOB'
-        puts "when '#{type.to_s.to_sym}' is 'Java::OracleSql::CLOB' then stmt.getClob(#{i})"
         stmt.getClob(i)
       when :'Java::OracleSql::BLOB'
         stmt.getBlob(i)
