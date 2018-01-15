@@ -213,6 +213,7 @@ module PLSQL
 
     def parse(sql)
       CallableStatement.new(self, sql)
+      puts sql
     end
 
     def cursor_from_query(sql, bindvars=[], options={})
@@ -268,7 +269,7 @@ module PLSQL
       Java::oracle.jdbc.OracleTypes::TIMESTAMPTZ => Time,
       Java::oracle.jdbc.OracleTypes::TIMESTAMPLTZ => Time,
       Java::oracle.jdbc.OracleTypes::BLOB => Java::OracleSql::BLOB,      
-      java.sql.Types::CLOB => Java::OracleSql::CLOB,
+      Java::oracle.jdbc.OracleTypes::CLOB => Java::OracleSql::CLOB,
       java.sql.Types::ARRAY => Java::OracleSql::ARRAY,
       java.sql.Types::STRUCT => Java::OracleSql::STRUCT,
       Java::oracle.jdbc.OracleTypes::CURSOR => java.sql.ResultSet
@@ -282,6 +283,8 @@ module PLSQL
       
       key = i.kind_of?(Integer) ? nil : i.to_s.gsub(':','')
       type_symbol = (!value.nil? && type ? type : value.class).to_s.to_sym
+
+      puts "value is #{value} key is #{key} type_symbol is #{type_symbol}"
       case type_symbol
       when :Fixnum, :Bignum, :Integer
         stmt.send("setInt#{key && "AtName"}", key || i, value)
@@ -327,6 +330,7 @@ module PLSQL
     end
 
     def get_bind_variable(stmt, i, type)
+      puts "bind variable type is #{type.to_s.to_sym}"
       case type.to_s.to_sym
       when :Fixnum, :Bignum, :Integer
         stmt.getObject(i)
