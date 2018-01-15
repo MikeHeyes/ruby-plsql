@@ -362,6 +362,7 @@ module PLSQL
     end
 
     def get_ruby_value_from_result_set(rset, i, metadata)
+      puts "get_ruby_value_from_result_set #{rset}, #{i}, #{metadata}"
       ruby_type = SQL_TYPE_TO_RUBY_CLASS[metadata[:sql_type]]
       ora_value = get_bind_variable(rset, i, ruby_type)
       result_new = ora_value_to_ruby_value(ora_value)
