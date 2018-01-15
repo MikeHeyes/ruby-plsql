@@ -268,7 +268,7 @@ module PLSQL
       Java::oracle.jdbc.OracleTypes::TIMESTAMPTZ => Time,
       Java::oracle.jdbc.OracleTypes::TIMESTAMPLTZ => Time,
       Java::oracle.jdbc.OracleTypes::BLOB => Java::OracleSql::BLOB,      
-      java.sql.Types::CLOB => String,
+      java.sql.Types::CLOB => Java::OracleSql::CLOB,
       java.sql.Types::ARRAY => Java::OracleSql::ARRAY,
       java.sql.Types::STRUCT => Java::OracleSql::STRUCT,
       Java::oracle.jdbc.OracleTypes::CURSOR => java.sql.ResultSet
