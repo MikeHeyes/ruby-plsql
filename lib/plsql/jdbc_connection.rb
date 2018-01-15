@@ -331,7 +331,7 @@ module PLSQL
     end
 
     def get_bind_variable(stmt, i, type)
-      puts "bind out variable type is #{type.to_s.to_sym}"
+      puts "bind out variable type is #{type.to_s.to_sym}, stmt #{stmt}, i #{i}"
       case type.to_s.to_sym
       when :Fixnum, :Bignum, :Integer
         stmt.getObject(i)
